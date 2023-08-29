@@ -23,6 +23,73 @@ public class VacanciesBot extends TelegramLongPollingBot {
     // User actions handling method
     @Override
     public void onUpdateReceived(Update update) {
+        if (update.getMessage() != null) executeStartCommand(update);
+        if (update.getCallbackQuery() != null) {
+            String callbackData = update.getCallbackQuery().getData();
+
+            switch (callbackData) {
+                case "showJuniorVacancies":
+                    this.executeShowJuniorVacanciesCommand(update);
+                    break;
+                case "showMiddleVacancies":
+                    // to future update
+                    this.executeShowJuniorVacanciesCommand(update);
+                    break;
+                case "showSeniorVacancies":
+                    // to future update
+                    this.executeShowJuniorVacanciesCommand(update);
+                    break;
+                default:
+                    this.handleUnexpectedError(update);
+            }
+        }
+    }
+
+    // Show vacancies list for Junior lvl by User request from start menu button
+    private void executeShowJuniorVacanciesCommand(Update update) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setText("Vacancies list :");
+        sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
+        sendMessage.setReplyMarkup(getJuniorVacanciesList());
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Load possible vacancies and form a list of it
+    private ReplyKeyboard getJuniorVacanciesList() {
+        List<InlineKeyboardButton> vacanciesListButtons = new ArrayList<>();
+
+        InlineKeyboardButton vacancyTemplate = new InlineKeyboardButton();
+        vacancyTemplate.setText("Template Button for Junior Developer Vacancy");
+        vacancyTemplate.setCallbackData("vacancyId = 1");
+        vacanciesListButtons.add(vacancyTemplate);
+
+        InlineKeyboardMarkup vacanciesListKeyboard = new InlineKeyboardMarkup();
+        vacanciesListKeyboard.setKeyboard(List.of(vacanciesListButtons));
+
+        return vacanciesListKeyboard;
+    }
+
+    // Inform user about unexpected error in system
+    private void handleUnexpectedError(Update update) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
+        sendMessage.setText("Unexpected error occurred! Please try again");
+        sendMessage.setReplyMarkup(getStartMenu());
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Display welcome message & start menu for user
+    private void executeStartCommand(Update update) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(update.getMessage().getChatId());
         sendMessage.setText("Welcome to JAVA vacancies bot\nSelect your preferences in proficiency level");
@@ -35,6 +102,7 @@ public class VacanciesBot extends TelegramLongPollingBot {
         }
     }
 
+    // Form start menu with main action buttons.
     private ReplyKeyboard getStartMenu() {
         List<InlineKeyboardButton> proficiencyLevelButtons = new ArrayList<>();
 
