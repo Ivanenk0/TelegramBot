@@ -23,40 +23,38 @@ public class VacanciesBot extends TelegramLongPollingBot {
     // User actions handling method
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.getMessage() != null) executeStartCommand(update);
-        if (update.getCallbackQuery() != null) {
-            String callbackData = update.getCallbackQuery().getData();
+        try {
+            if (update.getMessage() != null) executeStartCommand(update);
+            if (update.getCallbackQuery() != null) {
+                String callbackData = update.getCallbackQuery().getData();
 
-            switch (callbackData) {
-                case "showJuniorVacancies":
+                if ("showJuniorVacancies".equals(callbackData)) {
                     this.executeShowJuniorVacanciesCommand(update);
-                    break;
-                case "showMiddleVacancies":
-                    // to future update
-                    this.executeShowJuniorVacanciesCommand(update);
-                    break;
-                case "showSeniorVacancies":
-                    // to future update
-                    this.executeShowJuniorVacanciesCommand(update);
-                    break;
-                default:
-                    this.handleUnexpectedError(update);
+                }
+                if (callbackData.startsWith("vacancyId = ")) {
+                    String id = callbackData.split("=")[1];
+                    this.executeShowVacancyDescription(id, update);
+                }
             }
+        } catch (Exception e) {
+            throw new RuntimeException("Can't send message to user", e);
         }
     }
 
+    private void executeShowVacancyDescription(String id, Update update) throws TelegramApiException {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
+        sendMessage.setText("Vacancy description template\nID : " + id);
+        execute(sendMessage);
+    }
+
     // Show vacancies list for Junior lvl by User request from start menu button
-    private void executeShowJuniorVacanciesCommand(Update update) {
+    private void executeShowJuniorVacanciesCommand(Update update) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setText("Vacancies list :");
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
         sendMessage.setReplyMarkup(getJuniorVacanciesList());
-
-        try {
-            execute(sendMessage);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
+        execute(sendMessage);
     }
 
     // Load possible vacancies and form a list of it
