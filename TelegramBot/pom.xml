@@ -35,6 +35,12 @@
             <version>6.8.0</version>
         </dependency>
 
+        <!-- Lombok's extension to remove boilerplate code -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
