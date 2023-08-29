@@ -15,6 +15,9 @@ import java.util.List;
 @Component
 public class VacanciesBot extends TelegramLongPollingBot {
 
+    // Unique vacancy identification value
+    private int vacancyId = 0;
+
     // Unique bot token that was received via Telegram @BotFather
     public VacanciesBot() {
         super("6328282484:AAGlymbZffA0YE6wggt4UO4kaBW9a0YJtJQ");
@@ -28,12 +31,16 @@ public class VacanciesBot extends TelegramLongPollingBot {
             if (update.getCallbackQuery() != null) {
                 String callbackData = update.getCallbackQuery().getData();
 
-                if ("showJuniorVacancies".equals(callbackData)) {
-                    this.executeShowJuniorVacanciesCommand(update);
-                }
                 if (callbackData.startsWith("vacancyId = ")) {
                     String id = callbackData.split("=")[1];
                     this.executeShowVacancyDescription(id, update);
+                } else {
+                    switch (callbackData) {
+                        case "showJuniorVacancies" -> this.executeShowVacancies(update, ProficiencyLevel.JUNIOR);
+                        case "showMiddleVacancies" -> this.executeShowVacancies(update, ProficiencyLevel.MIDDLE);
+                        case "showSeniorVacancies" -> this.executeShowVacancies(update, ProficiencyLevel.SENIOR);
+                        default -> this.handleUnexpectedError(update);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -41,6 +48,7 @@ public class VacanciesBot extends TelegramLongPollingBot {
         }
     }
 
+    // Show vacancies description by User request
     private void executeShowVacancyDescription(String id, Update update) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
@@ -49,22 +57,25 @@ public class VacanciesBot extends TelegramLongPollingBot {
     }
 
     // Show vacancies list for Junior lvl by User request from start menu button
-    private void executeShowJuniorVacanciesCommand(Update update) throws TelegramApiException {
+    private void executeShowVacancies(Update update, ProficiencyLevel level) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
-        sendMessage.setText("Vacancies list :");
+        sendMessage.setText("Vacancies list for " + level.toString() + " Developer :");
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
-        sendMessage.setReplyMarkup(getJuniorVacanciesList());
+        sendMessage.setReplyMarkup(getVacanciesList(level));
         execute(sendMessage);
     }
 
     // Load possible vacancies and form a list of it
-    private ReplyKeyboard getJuniorVacanciesList() {
+    private ReplyKeyboard getVacanciesList(ProficiencyLevel level) {
         List<InlineKeyboardButton> vacanciesListButtons = new ArrayList<>();
 
         InlineKeyboardButton vacancyTemplate = new InlineKeyboardButton();
-        vacancyTemplate.setText("Template Button for Junior Developer Vacancy");
-        vacancyTemplate.setCallbackData("vacancyId = 1");
+        vacancyTemplate.setText("Template Button for " + level.toString() + " Developer Vacancy");
+        vacancyTemplate.setCallbackData("vacancyId = " + vacancyId);
         vacanciesListButtons.add(vacancyTemplate);
+
+        // Increase vacancy Id so next one generated will be own a new Id
+        vacancyId++;
 
         InlineKeyboardMarkup vacanciesListKeyboard = new InlineKeyboardMarkup();
         vacanciesListKeyboard.setKeyboard(List.of(vacanciesListButtons));
@@ -105,17 +116,17 @@ public class VacanciesBot extends TelegramLongPollingBot {
         List<InlineKeyboardButton> proficiencyLevelButtons = new ArrayList<>();
 
         InlineKeyboardButton juniorButton = new InlineKeyboardButton();
-        juniorButton.setText("JUNIOR");
+        juniorButton.setText(ProficiencyLevel.JUNIOR.name());
         juniorButton.setCallbackData("showJuniorVacancies");
         proficiencyLevelButtons.add(juniorButton);
 
         InlineKeyboardButton middleButton = new InlineKeyboardButton();
-        middleButton.setText("MIDDLE");
+        middleButton.setText(ProficiencyLevel.MIDDLE.name());
         middleButton.setCallbackData("showMiddleVacancies");
         proficiencyLevelButtons.add(middleButton);
 
         InlineKeyboardButton seniorButton = new InlineKeyboardButton();
-        seniorButton.setText("SENIOR");
+        seniorButton.setText(ProficiencyLevel.SENIOR.name());
         seniorButton.setCallbackData("showSeniorVacancies");
         proficiencyLevelButtons.add(seniorButton);
 
