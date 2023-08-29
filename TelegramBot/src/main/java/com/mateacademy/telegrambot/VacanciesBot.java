@@ -1,5 +1,9 @@
 package com.mateacademy.telegrambot;
 
+import com.mateacademy.telegrambot.dto.VacancyDto;
+import com.mateacademy.telegrambot.service.VacancyService;
+import com.mateacademy.telegrambot.utils.ProficiencyLevel;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -15,8 +19,8 @@ import java.util.List;
 @Component
 public class VacanciesBot extends TelegramLongPollingBot {
 
-    // Unique vacancy identification value
-    private int vacancyId = 0;
+    @Autowired
+    private VacancyService vacancyService;
 
     // Unique bot token that was received via Telegram @BotFather
     public VacanciesBot() {
@@ -31,14 +35,14 @@ public class VacanciesBot extends TelegramLongPollingBot {
             if (update.getCallbackQuery() != null) {
                 String callbackData = update.getCallbackQuery().getData();
 
-                if (callbackData.startsWith("vacancyId = ")) {
+                if (callbackData.startsWith("vacancyId=")) {
                     String id = callbackData.split("=")[1];
-                    this.executeShowVacancyDescription(id, update);
+                    this.showVacancyDescription(id, update);
                 } else {
                     switch (callbackData) {
-                        case "showJuniorVacancies" -> this.executeShowVacancies(update, ProficiencyLevel.JUNIOR);
-                        case "showMiddleVacancies" -> this.executeShowVacancies(update, ProficiencyLevel.MIDDLE);
-                        case "showSeniorVacancies" -> this.executeShowVacancies(update, ProficiencyLevel.SENIOR);
+                        case "showJuniorVacancies" -> this.showVacancies(update, ProficiencyLevel.JUNIOR);
+                        case "showMiddleVacancies" -> this.showVacancies(update, ProficiencyLevel.MIDDLE);
+                        case "showSeniorVacancies" -> this.showVacancies(update, ProficiencyLevel.SENIOR);
                         default -> this.handleUnexpectedError(update);
                     }
                 }
@@ -49,15 +53,16 @@ public class VacanciesBot extends TelegramLongPollingBot {
     }
 
     // Show vacancies description by User request
-    private void executeShowVacancyDescription(String id, Update update) throws TelegramApiException {
+    private void showVacancyDescription(String id, Update update) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
-        sendMessage.setText("Vacancy description template\nID : " + id);
+        String vacancyDescription = vacancyService.getVacancy(id).getShortDescription();
+        sendMessage.setText("Vacancy description :\nID " + id + "\n" + vacancyDescription);
         execute(sendMessage);
     }
 
     // Show vacancies list for Junior lvl by User request from start menu button
-    private void executeShowVacancies(Update update, ProficiencyLevel level) throws TelegramApiException {
+    private void showVacancies(Update update, ProficiencyLevel level) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setText("Vacancies list for " + level.toString() + " Developer :");
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
@@ -69,13 +74,14 @@ public class VacanciesBot extends TelegramLongPollingBot {
     private ReplyKeyboard getVacanciesList(ProficiencyLevel level) {
         List<InlineKeyboardButton> vacanciesListButtons = new ArrayList<>();
 
-        InlineKeyboardButton vacancyTemplate = new InlineKeyboardButton();
-        vacancyTemplate.setText("Template Button for " + level.toString() + " Developer Vacancy");
-        vacancyTemplate.setCallbackData("vacancyId = " + vacancyId);
-        vacanciesListButtons.add(vacancyTemplate);
+        List<VacancyDto> vacancies = vacancyService.findVacancies(level);
 
-        // Increase vacancy Id so next one generated will be own a new Id
-        vacancyId++;
+        for (VacancyDto vacancy : vacancies) {
+            InlineKeyboardButton vacancyButton = new InlineKeyboardButton();
+            vacancyButton.setText(vacancy.getTitle());
+            vacancyButton.setCallbackData("vacancyId=" + vacancy.getId());
+            vacanciesListButtons.add(vacancyButton);
+        }
 
         InlineKeyboardMarkup vacanciesListKeyboard = new InlineKeyboardMarkup();
         vacanciesListKeyboard.setKeyboard(List.of(vacanciesListButtons));
