@@ -1,4 +1,4 @@
-package com.mateacademy.telegrambot;
+package com.mateacademy.telegrambot.utils;
 
 public enum ProficiencyLevel {
     JUNIOR,

@@ -1,5 +1,6 @@
-package com.mateacademy.telegrambot;
+package com.mateacademy.telegrambot.config;
 
+import com.mateacademy.telegrambot.VacanciesBot;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
