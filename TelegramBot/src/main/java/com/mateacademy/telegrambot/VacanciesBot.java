@@ -14,13 +14,17 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class VacanciesBot extends TelegramLongPollingBot {
 
     @Autowired
     private VacancyService vacancyService;
+
+    private final Map<Long, ProficiencyLevel> userNavigationHistory = new HashMap<>();
 
     // Unique bot token that was received via Telegram @BotFather
     public VacanciesBot() {
@@ -43,12 +47,35 @@ public class VacanciesBot extends TelegramLongPollingBot {
                         case "showJuniorVacancies" -> this.showVacancies(update, ProficiencyLevel.JUNIOR);
                         case "showMiddleVacancies" -> this.showVacancies(update, ProficiencyLevel.MIDDLE);
                         case "showSeniorVacancies" -> this.showVacancies(update, ProficiencyLevel.SENIOR);
+                        case "backToVacancies" -> this.handlebackToVacanciesCommand(update);
+                        case "backToStartMenu" -> this.handleBackToStartCommand(update);
                         default -> this.handleUnexpectedError(update);
                     }
-                }
+            }
             }
         } catch (Exception e) {
             throw new RuntimeException("Can't send message to user", e);
+        }
+    }
+
+    private void handleBackToStartCommand(Update update) throws TelegramApiException {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setText("Choose title");
+        sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
+        sendMessage.setReplyMarkup(getStartMenu());
+        execute(sendMessage);
+    }
+
+    private void handlebackToVacanciesCommand(Update update) throws TelegramApiException {
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        ProficiencyLevel level = userNavigationHistory.get(chatId);
+
+        if (level.equals(ProficiencyLevel.JUNIOR)) {
+            this.showVacancies(update, ProficiencyLevel.JUNIOR);
+        } else if (level.equals(ProficiencyLevel.MIDDLE)) {
+            this.showVacancies(update, ProficiencyLevel.MIDDLE);
+        } else if (level.equals(ProficiencyLevel.SENIOR)) {
+            this.showVacancies(update, ProficiencyLevel.SENIOR);
         }
     }
 
@@ -58,16 +85,36 @@ public class VacanciesBot extends TelegramLongPollingBot {
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
         String vacancyDescription = vacancyService.getVacancy(id).getShortDescription();
         sendMessage.setText("Vacancy description :\nID " + id + "\n" + vacancyDescription);
+        sendMessage.setReplyMarkup(getBackToVacanciesMenu());
         execute(sendMessage);
+    }
+
+    public ReplyKeyboard getBackToVacanciesMenu() {
+        List<InlineKeyboardButton> actionButtons = new ArrayList<>();
+
+        InlineKeyboardButton backToVacanciesButton = new InlineKeyboardButton();
+        backToVacanciesButton.setText("Back to vacancies");
+        backToVacanciesButton.setCallbackData("backToVacancies");
+        actionButtons.add(backToVacanciesButton);
+
+        InlineKeyboardButton backToStartMenu = new InlineKeyboardButton();
+        backToStartMenu.setText("Back to start menu");
+        backToStartMenu.setCallbackData("backToStartMenu");
+        actionButtons.add(backToStartMenu);
+
+        return new InlineKeyboardMarkup(List.of(actionButtons));
     }
 
     // Show vacancies list for Junior lvl by User request from start menu button
     private void showVacancies(Update update, ProficiencyLevel level) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setText("Vacancies list for " + level.toString() + " Developer :");
-        sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
+        sendMessage.setChatId(chatId);
         sendMessage.setReplyMarkup(getVacanciesList(level));
         execute(sendMessage);
+
+        userNavigationHistory.put(chatId, level);
     }
 
     // Load possible vacancies and form a list of it
