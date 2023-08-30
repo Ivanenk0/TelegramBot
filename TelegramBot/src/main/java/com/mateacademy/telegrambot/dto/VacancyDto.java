@@ -30,4 +30,8 @@ public class VacancyDto {
 
     @CsvBindByName(column = "Link")
     private String link;
+
+    public String showSalary(String salary) {
+        return salary != null ? salary : "Not specified";
+    }
 }

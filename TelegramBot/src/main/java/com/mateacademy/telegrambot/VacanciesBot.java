@@ -83,10 +83,19 @@ public class VacanciesBot extends TelegramLongPollingBot {
     private void showVacancyDescription(String id, Update update) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
-        String vacancyDescription = vacancyService.getVacancy(id).getShortDescription();
-        sendMessage.setText("Vacancy description :\nID " + id + "\n" + vacancyDescription);
+        VacancyDto vacancy = vacancyService.getVacancy(id);
+        sendMessage.setText(setupVacancyDescription(vacancy));
         sendMessage.setReplyMarkup(getBackToVacanciesMenu());
         execute(sendMessage);
+    }
+
+    private String setupVacancyDescription(VacancyDto vacancy) {
+        return "Title : " + vacancy.getTitle() +
+                "\nCompany : " + vacancy.getCompany() +
+                "\nShort description : " + vacancy.getShortDescription() +
+                "\nDescription : " + vacancy.getLongDescription() +
+                "\nSalary : " + vacancy.showSalary(vacancy.getSalary()) +
+                "\nLink : " + vacancy.getLink();
     }
 
     public ReplyKeyboard getBackToVacanciesMenu() {
@@ -101,6 +110,11 @@ public class VacanciesBot extends TelegramLongPollingBot {
         backToStartMenu.setText("Back to start menu");
         backToStartMenu.setCallbackData("backToStartMenu");
         actionButtons.add(backToStartMenu);
+
+        InlineKeyboardButton getChatGpt = new InlineKeyboardButton();
+        getChatGpt.setText("Generate cover letter");
+        getChatGpt.setUrl("https://chat.openai.com/");
+        actionButtons.add(getChatGpt);
 
         return new InlineKeyboardMarkup(List.of(actionButtons));
     }
